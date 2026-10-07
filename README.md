@@ -31,7 +31,12 @@ Tables/dbo/tbl_m3_<TABLE>     (table Delta bronze, partitionnée par _load_date)
         + Tables/dbo/load_tracking   (journal des exécutions, partagé par les 2 notebooks)
 ```
 
-Les deux notebooks sont orchestrés par le pipeline Fabric **`pl_m3_full`** :
+S'y ajoutent deux notebooks de maintenance et de supervision :
+
+- **`retention_partitions.ipynb`** (pipeline `pl_m3_retention`, `Step = retention`) : purge des partitions `_load_date` au-delà de la rétention (90 jours), avec garde-fou protégeant les tables incrémentales ;
+- **`pipeline_monitoring_python.ipynb`** : log au niveau pipeline dans la table centralisée `log_pipelines` (lakehouse `LH_METADATA`).
+
+Les deux notebooks d'ingestion sont orchestrés par le pipeline Fabric **`pl_m3_full`** :
 
 1. **Filter actives** : filtre la liste des tables (paramètre `m3_table_name`, un tableau JSON — voir `table_m3.json`) sur `isactive == "True"`.
 2. **ForEach** (parallélisme `batchCount = 2`) : pour chaque table active, exécute séquentiellement :
@@ -59,3 +64,6 @@ Chaque table M3 à ingérer est décrite par un objet :
 - [docs/01-m3-loading-tables.md](docs/01-m3-loading-tables.md) — extraction M3 → parquet (pagination, fenêtre incrémentale, idempotence)
 - [docs/02-files-to-delta.md](docs/02-files-to-delta.md) — parquet → tables Delta bronze (modes full/incremental, hkey, schéma)
 - [docs/03-load-tracking.md](docs/03-load-tracking.md) — la table `load_tracking` : schéma et contrainte de compatibilité delta-rs / Spark
+- [docs/04-retention-partitions.md](docs/04-retention-partitions.md) — purge des anciennes partitions (Delta + Files) et garde-fou incrémental
+- [docs/05-pipeline-monitoring.md](docs/05-pipeline-monitoring.md) — monitoring au niveau pipeline (`log_pipelines`, lakehouse métadonnées)
+- [docs/06-flux-gupta.md](docs/06-flux-gupta.md) — réutilisation de `files_to_delta` pour la source Gupta (PCF)
